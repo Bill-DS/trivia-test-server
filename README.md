@@ -11,4 +11,7 @@ To test on the app, the websocket server address needs to be set to:
 In the Android Display app, this address is set in the `HostProvider.kt` file, 
 under the var `triviaHost`
 
-To run the server, using Intellij or (probably) Android Studio, goto the `Applications.kt` file and click the run icon.
+To run the server, using Intellij or Android Studio, goto the `Applications.kt` file and click the run icon.
+
+To verify that the server is running, using a browser on the dev machine, go to: `http://localhost:8080/test`. 
+A page with "Hello" should be received.
