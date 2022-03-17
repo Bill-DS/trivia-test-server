@@ -223,6 +223,7 @@ internal fun WebSocketSession.launchResponseHandler(): Job =
                                     reportError("Game already subscribed")
                                 else {
                                     gc.job.getAndSet(null)?.cancelAndJoin()
+                                    send( json.encodeToString(WsMessage("Subscribing to GAME_${gc.gameId}")))
                                     println("Launching game: ${gc.gameId}")
                                     gc.job.set(launchGame(gc))
                                 }
@@ -236,6 +237,7 @@ internal fun WebSocketSession.launchResponseHandler(): Job =
                 is WsTriviaGameUnsubscription -> {
                     findGame(ansrResp.gameId)?.let { gc ->
                         val was = gc.subscribed.getAndSet(false)
+                        send( json.encodeToString(WsMessage("Unsubscribing from GAME_${gc.gameId}")))
                         println("Unsubscribing from game ${gc.gameId}, was subscribed: ${was}")
                         startNextGame()
                     } ?: let {
