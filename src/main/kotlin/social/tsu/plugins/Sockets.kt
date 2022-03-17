@@ -70,6 +70,14 @@ fun Application.configureSockets() {
                 close(CloseReason(CloseReason.Codes.PROTOCOL_ERROR,"Protocol error: $msg"))
             }
 
+            // reset the games
+            games.forEach { gc ->
+                gc.surveyState.set( SurveyState.STOPPED.ordinal)
+                gc.subscribed.set(false)
+                gc.job.set(null)
+                gc.questionActive.set(false)
+            }
+
             launch {
                 // look for remote close
                 closeReason.await()?.let { println("remote close, reason=$it") }
@@ -79,16 +87,9 @@ fun Application.configureSockets() {
             send(json.encodeToString(TriviaTestData.connectionResponse))
 
             delay(100)
-
             launchGamesListSender()
             val responseJob = launchResponseHandler()
-
-            delay(10_000)
-
-            // start first game
-            val gameContext = games[1]
-            gameContext.surveyState.set(SurveyState.STARTED.ordinal)
-
+            startNextGame()
 
             println("stuff is running")
             responseJob.join()
@@ -116,6 +117,17 @@ fun Frame.decode(): Any? {
         }
     }
 }
+
+internal fun WebSocketSession.startNextGame(): Job =
+    launch {
+        delay(5000)
+        games.firstOrNull { it.surveyState.get() == SurveyState.STOPPED.ordinal }?.let { gc ->
+            gc.surveyState.set( SurveyState.STARTED.ordinal)
+        }?:let {
+            println("-----> All Done <------")
+            close( CloseReason(CloseReason.Codes.NORMAL, "All done") )
+        }
+    }
 
 internal fun WebSocketSession.launchGame(gameContext: GameContext): Job =
     launch {
@@ -225,6 +237,7 @@ internal fun WebSocketSession.launchResponseHandler(): Job =
                     findGame(ansrResp.gameId)?.let { gc ->
                         val was = gc.subscribed.getAndSet(false)
                         println("Unsubscribing from game ${gc.gameId}, was subscribed: ${was}")
+                        startNextGame()
                     } ?: let {
                         reportError("unrecognized gameId in unsubscribe: ${ansrResp.gameId}")
                     }

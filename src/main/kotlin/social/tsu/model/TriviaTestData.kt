@@ -77,7 +77,7 @@ class TriviaTestData(
 
     val endGameResults = WsEndGameResults(
         gameId = gameId,
-        gameType = SurveyType.TRIVIUM.value,
+        gameType = gameType.value,
         gameState = SurveyState.COMPLETED.ordinal,
         prizePool = jackpot.toFloat(),
         numberOfWinners = 123,
