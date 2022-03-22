@@ -10,6 +10,7 @@ import social.tsu.model.data.WebsocketTrivia
  */
 @Serializable
 data class WsGamesInfoList(
+    val type: String = "games_list",
     val data: List<GameInfo>
 ) : WebsocketTrivia
 

@@ -22,10 +22,10 @@ data class WsTriviaAnswerAcknowledgementWrapper(
 data class WsTriviaAnswerAcknowledgement(
 
     @SerialName("question_id")
-    val questionId: String,
+    val questionId: Int,
 
     @SerialName("answer_id")
-    val answerId: String,
+    val answerId: Int,
 
     val accepted: Boolean,
 
@@ -39,8 +39,8 @@ fun createAnswerAcknowledgement( questionId: Int, answerId: Int, accepted: Boole
         answers = listOf(
             WsTriviaAnswerAcknowledgementWrapper(
                 WsTriviaAnswerAcknowledgement(
-                    questionId = questionId.toString(),
-                    answerId = answerId.toString(),
+                    questionId = questionId,
+                    answerId = answerId,
                     accepted = accepted,
                     error = false
                 )

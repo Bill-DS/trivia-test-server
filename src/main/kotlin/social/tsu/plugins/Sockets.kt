@@ -17,7 +17,6 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
 val serializer = TriviaSerializer()
-var gameId: Int = 1001
 
 val json = Json {
     encodeDefaults = true
@@ -64,11 +63,6 @@ fun Application.configureSockets() {
 
     routing {
         webSocket("/") { // websocketSession
-
-            suspend fun protocolError( msg: String) {
-                println("Protocol error, msg=$msg")
-                close(CloseReason(CloseReason.Codes.PROTOCOL_ERROR,"Protocol error: $msg"))
-            }
 
             // reset the games
             games.forEach { gc ->
@@ -120,7 +114,7 @@ fun Frame.decode(): Any? {
 
 internal fun WebSocketSession.startNextGame(): Job =
     launch {
-        delay(5000)
+        delay(3000)
         games.firstOrNull { it.surveyState.get() == SurveyState.STOPPED.ordinal }?.let { gc ->
             gc.surveyState.set( SurveyState.STARTED.ordinal)
         }?:let {
@@ -145,7 +139,7 @@ internal fun WebSocketSession.launchGame(gameContext: GameContext): Job =
                 println("sending question: ${sr.questionsList.firstOrNull()?.questionTitle}")
                 val srMsg = json.encodeToString(sr)
                 gameContext.questionActive.set(true)
-                repeat(2) {
+                repeat(gameContext.testData.questionDisplayedLoops) {
                     if (!gameContext.subscribed.get()) return@launch
                     send(surveyMsg)
                     delay(50)
@@ -154,7 +148,8 @@ internal fun WebSocketSession.launchGame(gameContext: GameContext): Job =
                 }
                 println("answer window closed")
                 gameContext.questionActive.set(false) // stop accepting answers
-                repeat(1) {
+                delay( TriviaTestData.networkDelayMsec )
+                repeat(gameContext.testData.questionClosedLoops) {
                     if (!gameContext.subscribed.get()) return@launch
                     send(surveyMsg)
                     delay(50)
@@ -166,7 +161,7 @@ internal fun WebSocketSession.launchGame(gameContext: GameContext): Job =
                 val asr = gameContext.testData.getSurveyResults(qNum, true) ?: return@forEach
                 val asrJson = json.encodeToString(asr)
 
-                repeat(3) {
+                repeat(gameContext.testData.answerDisplayedLoops) {
                     if (!gameContext.subscribed.get()) return@launch
                     send(surveyMsg)
                     send( asrJson )
@@ -207,7 +202,7 @@ internal fun WebSocketSession.launchResponseHandler(): Job =
                 is WsTriviaAnswerResponse -> {
                      ansrResp.answers.firstOrNull()?.answer?.let { ansr ->
                         println("User answered: answerId=${ansr.answerId}")
-                         delay(500)
+                         delay(TriviaTestData.networkDelayMsec)
                          val gc = findGame(ansrResp.gameId)
                          val resp = createAnswerAcknowledgement(ansr.questionId, ansr.answerId, gc?.questionActive?.get() ?: false)
                          send( json.encodeToString(resp))
