@@ -24,13 +24,17 @@ class TriviaTestData(
 
     val gameMessagePeriodMsec: Long = 1_000L
     val questionDisplayedLoops = 4
-    val questionClosedLoops = 0
+    val questionClosedLoops = 2
     val answerDisplayedLoops = 3
 
 
     val sampleQuestions = when(gameType) {
         SurveyType.TRIVIUM ->
             listOf(
+                sq("What is your favorite color?", 0, "Red", "Green", "Blue", "Yellow"),
+                sq("What is your quest?", 1, "World peace", "The holy grail", "A good nap", "A new couch"),
+                sq("What is the airspeed velocity of an unladen swallow?", 2, "60 mph", "2 furlongs/fortnight", "European or African?", "11"),
+                sq( "What shall thou count for the Holy Hand Grenade of Antioch?", 1, "2", "3", "4", "5"),
                 sq("What is your favorite color?", 0, "Red", "Green", "Blue", "Yellow"),
                 sq("What is your quest?", 1, "World peace", "The holy grail", "A good nap", "A new couch"),
                 sq("What is the airspeed velocity of an unladen swallow?", 2, "60 mph", "2 furlongs/fortnight", "European or African?", "11"),
