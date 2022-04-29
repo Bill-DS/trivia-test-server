@@ -22,7 +22,7 @@ val json = Json {
     encodeDefaults = true
 }
 
-internal class GameContext(
+class GameContext(
     val testData: TriviaTestData
 ) {
     val subscribed = AtomicBoolean(false)
@@ -112,6 +112,10 @@ fun Frame.decode(): Any? {
     }
 }
 
+fun GameContext.getSurveyMsg(): String {
+    return json.encodeToString(testData.getSurvey(this))
+}
+
 internal fun WebSocketSession.startNextGame(): Job =
     launch {
         delay(3000)
@@ -127,10 +131,9 @@ internal fun WebSocketSession.launchGame(gameContext: GameContext): Job =
     launch {
 
         try {
-            val surveyMsg = json.encodeToString(gameContext.testData.survey)
             repeat(3) {
                 if (!gameContext.subscribed.get()) return@launch
-                send(surveyMsg)
+                send(gameContext.getSurveyMsg())
                 delay(gameContext.testData.gameMessagePeriodMsec)
             }
 
@@ -141,7 +144,7 @@ internal fun WebSocketSession.launchGame(gameContext: GameContext): Job =
                 gameContext.questionActive.set(true)
                 repeat(gameContext.testData.questionDisplayedLoops) {
                     if (!gameContext.subscribed.get()) return@launch
-                    send(surveyMsg)
+                    send(gameContext.getSurveyMsg())
                     delay(50)
                     send(srMsg)
                     delay(gameContext.testData.gameMessagePeriodMsec)
@@ -151,19 +154,20 @@ internal fun WebSocketSession.launchGame(gameContext: GameContext): Job =
                 delay( TriviaTestData.networkDelayMsec )
                 repeat(gameContext.testData.questionClosedLoops) {
                     if (!gameContext.subscribed.get()) return@launch
-                    send(surveyMsg)
+                    send(gameContext.getSurveyMsg())
                     delay(50)
                     send(srMsg)
                     delay(gameContext.testData.gameMessagePeriodMsec)
                 }
 
                 // Send correct answer message
-                val asr = gameContext.testData.getSurveyResults(qNum, true) ?: return@forEach
-                val asrJson = json.encodeToString(asr)
 
-                repeat(gameContext.testData.answerDisplayedLoops) {
+                repeat(gameContext.testData.answerDisplayedLoops) { rpt ->
+                    val asr = gameContext.testData.getSurveyResults(qNum, true, rpt) ?: return@forEach
+                    val asrJson = json.encodeToString(asr)
+
                     if (!gameContext.subscribed.get()) return@launch
-                    send(surveyMsg)
+                    send(gameContext.getSurveyMsg())
                     send( asrJson )
                     delay(gameContext.testData.gameMessagePeriodMsec)
                     // TODO make end game message change to reflect updated totals
@@ -175,8 +179,9 @@ internal fun WebSocketSession.launchGame(gameContext: GameContext): Job =
             val endGameMsg = json.encodeToString( gameContext.testData.endGameResults )
             repeat(20) {
                 if (!gameContext.subscribed.get()) return@launch
-                send(surveyMsg)
-                send(endGameMsg)
+                send(gameContext.getSurveyMsg())
+                if (gameContext.testData.gameType == SurveyType.TRIVIUM)
+                    send(endGameMsg)
                 delay(gameContext.testData.gameMessagePeriodMsec)
             }
 
@@ -191,7 +196,7 @@ internal fun WebSocketSession.launchGamesListSender(): Job =
     launch {
         while(isActive){
             send( json.encodeToString(createGamesListMsg()))
-            delay(3000L)
+            delay(1500L)
         }
     }
 

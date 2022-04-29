@@ -7,6 +7,7 @@ import social.tsu.android.network.model.trivia.websocket.WsSurveyResults
 import social.tsu.model.data.WsSurvey
 import social.tsu.model.data.WsTriviaConnected
 import social.tsu.model.data.sq
+import social.tsu.plugins.GameContext
 
 
 class TriviaTestData(
@@ -24,8 +25,8 @@ class TriviaTestData(
 
     val gameMessagePeriodMsec: Long = 1_000L
     val questionDisplayedLoops = 4
-    val questionClosedLoops = 2
-    val answerDisplayedLoops = 3
+    val questionClosedLoops = 3
+    val answerDisplayedLoops = 6
 
 
     val sampleQuestions = when(gameType) {
@@ -35,10 +36,10 @@ class TriviaTestData(
                 sq("What is your quest?", 1, "World peace", "The holy grail", "A good nap", "A new couch"),
                 sq("What is the airspeed velocity of an unladen swallow?", 2, "60 mph", "2 furlongs/fortnight", "European or African?", "11"),
                 sq( "What shall thou count for the Holy Hand Grenade of Antioch?", 1, "2", "3", "4", "5"),
-                sq("What is your favorite color?", 0, "Red", "Green", "Blue", "Yellow"),
-                sq("What is your quest?", 1, "World peace", "The holy grail", "A good nap", "A new couch"),
-                sq("What is the airspeed velocity of an unladen swallow?", 2, "60 mph", "2 furlongs/fortnight", "European or African?", "11"),
-                sq( "What shall thou count for the Holy Hand Grenade of Antioch?", 1, "2", "3", "4", "5")
+//                sq("What is your favorite color?", 0, "Red", "Green", "Blue", "Yellow"),
+//                sq("What is your quest?", 1, "World peace", "The holy grail", "A good nap", "A new couch"),
+//                sq("What is the airspeed velocity of an unladen swallow?", 2, "60 mph", "2 furlongs/fortnight", "European or African?", "11"),
+//                sq( "What shall thou count for the Holy Hand Grenade of Antioch?", 1, "2", "3", "4", "5")
             )
         SurveyType.POLL ->
             listOf(
@@ -50,18 +51,31 @@ class TriviaTestData(
 
     val numQuestions = sampleQuestions.size
 
-    val survey = WsSurvey(
-        surveyId = 1,
-        gameId = gameId,
-        gameJackpot = jackpot,
-        jackpotPercentBarrier = 100,
-        surveyState = SurveyState.STARTED.ordinal,
-        type = gameType.value,
-        maxNumberOfQuestions = numQuestions,
-        questionsList = listOf()
-    )
+    fun getSurvey( context: GameContext ): WsSurvey {
+        return WsSurvey(
+            surveyId = 1,
+            gameId = context.gameId,
+            gameJackpot = jackpot,
+            jackpotPercentBarrier = 100,
+            surveyState = context.surveyState.get(),
+            type = gameType.value,
+            maxNumberOfQuestions = numQuestions,
+            questionsList = listOf()
 
-    fun getSurveyResults(qNum: Int, answered: Boolean = false): WsSurveyResults? =
+        )
+    }
+//    val survey = WsSurvey(
+//        surveyId = 1,
+//        gameId = gameId,
+//        gameJackpot = jackpot,
+//        jackpotPercentBarrier = 100,
+//        surveyState = SurveyState.STARTED.ordinal,
+//        type = gameType.value,
+//        maxNumberOfQuestions = numQuestions,
+//        questionsList = listOf()
+//    )
+
+    fun getSurveyResults(qNum: Int, answered: Boolean = false, repeat: Int=0): WsSurveyResults? =
         sampleQuestions.getOrNull(qNum)?.let { sq ->
             WsSurveyResults(
                 gameId = gameId,
@@ -74,8 +88,8 @@ class TriviaTestData(
                             WsAnswerResults(
                                 answerId = (qNum+1)*100 + aNdx + 1,
                                 answerTitle = aTxt,
-                                isAnswerCorrect = answered && sq.correct == aNdx,
-                                answerPercentage = "30".takeIf { answered },
+                                isAnswerCorrect = answered && sq.correct == aNdx && gameType != SurveyType.POLL,
+                                answerPercentage = ((20+repeat).toString() + ".00").takeIf { answered } ?: "0", // BE sends "0" instead of null
                                 answersCount = 5.takeIf { answered }
                             )
                         }
